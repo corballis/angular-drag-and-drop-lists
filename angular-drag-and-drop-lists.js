@@ -181,6 +181,11 @@ angular.module('dndLists', [])
             // at the location where the element would be inserted after dropping
             var placeholder = angular.element("<li class='dndPlaceholder'></li>");
             var placeholderNode = placeholder[0];
+
+            if (attr.dndPlaceholderClasses) {
+              placeholder.addClass(attr.dndPlaceholderClasses);
+            }
+
             var listNode = element[0];
 
             /**
