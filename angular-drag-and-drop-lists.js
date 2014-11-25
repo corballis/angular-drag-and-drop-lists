@@ -179,7 +179,7 @@ angular.module('dndLists', [])
         return function(scope, element, attr) {
             // While an element is dragged over the list, this placeholder element is inserted
             // at the location where the element would be inserted after dropping
-            var placeholder = angular.element("<li class='dndPlaceholder'></li>");
+            var placeholder = angular.element("<li class='dndPlaceholder'>" + attr.dndPlaceholderText + "</li>");
             var placeholderNode = placeholder[0];
 
             if (attr.dndPlaceholderClasses) {
@@ -187,6 +187,16 @@ angular.module('dndLists', [])
             }
 
             var listNode = element[0];
+
+            if (attr.dndShowPlaceholderIfEmpty) {
+              scope.$watch(attr.dndList + '.length', function (listSize) {
+                if (listSize === 0) {
+                  element.append(placeholder);
+                } else {
+                  placeholder.remove();
+                }
+              });
+            }
 
             /**
              * The dragover event is triggered "every few hundred milliseconds" while an element
