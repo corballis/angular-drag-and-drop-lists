@@ -326,7 +326,7 @@ angular.module('dndLists', [])
 
                 element.removeClass("dndDragover");
                 $timeout(function() {
-                    if (!element.hasClass("dndDragover")) {
+                    if (!element.hasClass("dndDragover") && scope.$eval(attr.dndList).length > 0) {
                         placeholder.remove();
                     }
                 }, 100);
