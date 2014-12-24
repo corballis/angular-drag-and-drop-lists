@@ -176,8 +176,8 @@ angular.module('dndLists', [])
  *                      added. This element is of type li and has the class dndPlaceholder set.
  * - dndDragover        This class will be added to the list while an element is being dragged over the list.
  */
-  .directive('dndList', ['$timeout', 'dndDropEffectWorkaround', 'dndDragTypeWorkaround',
-    function ($timeout, dndDropEffectWorkaround, dndDragTypeWorkaround) {
+  .directive('dndList', ['$timeout', 'dndDropEffectWorkaround', 'dndDragTypeWorkaround', '$parse',
+    function ($timeout, dndDropEffectWorkaround, dndDragTypeWorkaround, $parse) {
       return function (scope, element, attr) {
         // While an element is dragged over the list, this placeholder element is inserted
         // at the location where the element would be inserted after dropping
@@ -206,6 +206,8 @@ angular.module('dndLists', [])
          */
         element.on('dragover', function (event) {
           event = event.originalEvent || event;
+
+          element.children().removeClass('dndDragover');
 
           // Disallow drop if it comes from an external source or is not text.
           // Usually we would use a custom drag type for this, but IE doesn't support that.
@@ -247,8 +249,23 @@ angular.module('dndLists', [])
             // Firefox we have to use layerY, which only works if the child element has
             // position relative. In IE this branch is never reached because the dragover
             // event is only fired for the listNode, not for it's children
+            var itemIndex = Array.prototype.indexOf.call(listNode.children, liNode);
+            var targetArray = scope.$eval(attr.dndList);
+
+            if (itemIndex >= targetArray.length) {
+              itemIndex--;
+            }
+
+            var item = targetArray[itemIndex];
             var beforeOrAfter = (event.offsetY || event.layerY) < liNode.offsetHeight / 2;
             listNode.insertBefore(placeholderNode, beforeOrAfter ? liNode : liNode.nextSibling);
+
+            if (attr.dragOverCallback) {
+              var callbackFunction = $parse(attr.dragOverCallback);
+              if (callbackFunction(scope, {item: item})) {
+                angular.element(liNode).addClass('dndDragover');
+              }
+            }
           } else if (event.target === listNode) {
             // This branch is reached when we are dragging directly over the list element.
             // Usually we wouldn't need to do anything here, but the IE does not fire it's
@@ -305,9 +322,24 @@ angular.module('dndLists', [])
           // We use the position of the placeholder node to determine at which
           // position of the array we will insert the object
           var placeholderIndex = Array.prototype.indexOf.call(listNode.children, placeholderNode);
-          scope.$apply(function () {
-            targetArray.splice(placeholderIndex, 0, transferredObject);
-          });
+
+          var dragOverIndex = null;
+          if (placeholderNode.previousElementSibling && angular.element(placeholderNode.previousElementSibling).hasClass('dndDragover')) {
+            dragOverIndex = placeholderIndex - 1;
+          } else if (placeholderNode.nextElementSibling && angular.element(placeholderNode.nextElementSibling).hasClass('dndDragover')) {
+            dragOverIndex = placeholderIndex;
+          }
+
+          if (dragOverIndex !== null) {
+            if (attr.dropCallback) {
+              var callbackFunction = $parse(attr.dropCallback);
+              callbackFunction(scope, {dropTarget: targetArray[dragOverIndex], transferredObject: transferredObject});
+            }
+          } else {
+            scope.$apply(function () {
+              targetArray.splice(placeholderIndex, 0, transferredObject);
+            });
+          }
 
           // In Chrome on Windows the dropEffect will always be none...
           // We have to determine the actual effect manually from the allowed effects
@@ -320,6 +352,7 @@ angular.module('dndLists', [])
           // Clean up
           placeholder.remove();
           element.removeClass("dndDragover");
+          element.children().removeClass('dndDragover');
           event.preventDefault();
           event.stopPropagation();
           return false;
@@ -337,6 +370,7 @@ angular.module('dndLists', [])
           event = event.originalEvent || event;
 
           element.removeClass("dndDragover");
+          element.children().removeClass('dndDragover');
           $timeout(function () {
             if (!element.hasClass("dndDragover") && scope.$eval(attr.dndList).length > 0) {
               placeholder.remove();
