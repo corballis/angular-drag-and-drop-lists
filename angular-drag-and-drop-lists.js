@@ -249,18 +249,18 @@ angular.module('dndLists', [])
             // Firefox we have to use layerY, which only works if the child element has
             // position relative. In IE this branch is never reached because the dragover
             // event is only fired for the listNode, not for it's children
-            var itemIndex = Array.prototype.indexOf.call(listNode.children, liNode);
-            var targetArray = scope.$eval(attr.dndList);
-
-            if (itemIndex >= targetArray.length) {
-              itemIndex--;
-            }
-
-            var item = targetArray[itemIndex];
             var beforeOrAfter = (event.offsetY || event.layerY) < liNode.offsetHeight / 2;
             listNode.insertBefore(placeholderNode, beforeOrAfter ? liNode : liNode.nextSibling);
 
             if (attr.dragOverCallback) {
+              var itemIndex = Array.prototype.indexOf.call(listNode.children, liNode);
+              var targetArray = scope.$eval(attr.dndList);
+
+              if (beforeOrAfter) {
+                itemIndex--;
+              }
+
+              var item = targetArray[itemIndex];
               var callbackFunction = $parse(attr.dragOverCallback);
               if (callbackFunction(scope, {item: item})) {
                 angular.element(liNode).addClass('dndDragover');
